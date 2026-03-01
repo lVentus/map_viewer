@@ -91,7 +91,7 @@ int main(int argc, char** argv)
 
         nodes.push_back({x, y});
 
-        // 更新 BOUNDS
+        // Update BOUNDS
         if (x < minX) minX = x;
         if (x > maxX) maxX = x;
         if (y < minY) minY = y;
