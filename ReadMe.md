@@ -2,7 +2,7 @@
 
 ## Ubuntu dependencies
 
-`sudo apt update && sudo apt install -y build-essential cmake ninja-build pkg-config libglfw3-dev libgl1-mesa-dev libx11-dev libxrandr-dev libxi-dev libxinerama-dev libxcursor-dev`
+`sudo apt update && sudo apt install -y build-essential cmake ninja-build pkg-config libglfw3-dev libgl1-mesa-dev libx11-dev libxrandr-dev libxi-dev libxinerama-dev libxcursor-dev xorg-dev mesa-common-dev`
 
 ## Build
 
