@@ -4,7 +4,7 @@ project(MapViewer LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# ---- MSVC runtime (兼容写法，避免 LNK4098 且不触发 CMake bug) ----
+# ---- MSVC runtime (keep your current behavior) ----
 if (MSVC)
     set(CMAKE_C_FLAGS_DEBUG "/MDd")
     set(CMAKE_C_FLAGS_RELEASE "/MD")
@@ -12,7 +12,7 @@ if (MSVC)
     set(CMAKE_CXX_FLAGS_RELEASE "/MD")
 endif()
 
-# ---- GLAD as static library ----
+# ---- GLAD ----
 add_library(glad STATIC
     external/glad/src/glad.c
 )
@@ -24,9 +24,12 @@ target_include_directories(glad PUBLIC
 # ---- Executable ----
 add_executable(map_viewer
     src/main.cpp
+    src/renderer_gl.cpp
+    src/map_cache.cpp
 )
 
 target_include_directories(map_viewer PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/external/stb
 )
 
