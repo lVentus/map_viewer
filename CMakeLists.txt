@@ -4,7 +4,7 @@ project(MapViewer LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# ---- MSVC runtime (keep your current behavior) ----
+# ---- MSVC runtime ----
 if (MSVC)
     set(CMAKE_C_FLAGS_DEBUG "/MDd")
     set(CMAKE_C_FLAGS_RELEASE "/MD")

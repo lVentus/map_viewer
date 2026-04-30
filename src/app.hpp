@@ -60,7 +60,6 @@ struct Camera {
 };
 
 // ---- cache params ----
-// Keep identical to the current behavior.
 static constexpr int kTileSize = 65535;
 static constexpr int kCacheVersion = 2;
 
@@ -153,7 +152,7 @@ struct CacheInfo {
     bool valid = false;
 };
 
-// ---- small utils (keep behavior identical) ----
+// ---- small utils----
 
 inline bool statFile(const std::string& path, uint64_t& size, uint64_t& mtime) {
     struct stat st {};

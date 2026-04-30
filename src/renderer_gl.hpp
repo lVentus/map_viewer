@@ -68,7 +68,6 @@ public:
     void drawLines(const LineBatchGpu& b, const AABB& view);
     void drawText(const TextGpu& t, const AABB& view);
 
-    // Same heuristic as your original implementation.
     static float normalizeTextAngle(float angle);
 
 private:

@@ -41,7 +41,6 @@ public:
     // Evict old / unused tiles.
     void evict();
 
-    // Tick counters
     void nextFrame() { ++frameId_; }
 
     // Draw helpers (iterate visible tiles)
@@ -74,11 +73,11 @@ public:
     uint64_t textRev() const { return textRev_; }
     void bumpTextRev() { ++textRev_; }
 
-    // Flags (same semantics as your original)
+    // Flags
     bool anyTextLoaded() const { return anyTextLoaded_; }
     bool anyPolyLoaded() const { return anyPolyLoaded_; }
 
-    // Tuning knobs (keep defaults consistent with your original)
+    // Tuning knobs
     int maxResidentTiles = 512;
     int maxUploadPerFrame = 64;
     int padTiles = 1;

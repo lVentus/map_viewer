@@ -297,7 +297,7 @@ int main(int argc, char** argv) {
 
         renderer.beginFrame(viewBB, gColors.background[0], gColors.background[1], gColors.background[2], gColors.background[3]);
 
-        // Polys: collect & layer-sort (same behavior)
+        // Polys: collect & layer-sort
         if (cache.anyPolyLoaded()) {
             std::vector<const PolyBatchGpu*> polys;
             polys.reserve(1024);

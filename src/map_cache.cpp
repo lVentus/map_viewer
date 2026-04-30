@@ -847,8 +847,8 @@ void MapCache::shutdown() {
     closePackedStore_();
 
     // free gpu
-    // caller owns RendererGL; we only delete GL objects when we have renderer in upload path,
-    // so here we just drop CPU+handles. (RendererGL shutdown will clean program/atlas.)
+    // caller owns RendererGL; only delete GL objects when we have renderer in upload path,
+    // so here just drop CPU+handles. (RendererGL shutdown will clean program/atlas.)
     tiles_.clear();
     lastUsed_.clear();
     inFlight_.clear();
@@ -1070,7 +1070,7 @@ void MapCache::rebuildTileText_(RendererGL& r, Tile& t, double viewArea) {
     const double minRatio = 0.01;
     const double maxRatio = 0.15;
 
-    // Visibility filter stays here (same rule as before).
+    // Visibility filter
     std::vector<TextLabelCPU> filtered;
     filtered.reserve(t.texts.size());
 
@@ -1152,7 +1152,6 @@ void MapCache::uploadTile_(RendererGL& r, PendingTileCPU&& cpu, double viewArea)
     t.gpuTextValid = false;
     t.gpuTextRev = 0;
 
-    // Optional eager build if you want: keep identical behavior (lazy via rev check in main).
     (void)viewArea;
 }
 
@@ -1211,7 +1210,6 @@ void MapCache::evict() {
             auto it = tiles_.find(c.first);
             if (it != tiles_.end()) {
                 // GL objects are owned; in this minimal split, we only destroy with renderer during upload path.
-                // To keep behavior predictable, we just drop CPU + handles here.
                 it->second.texts.clear();
                 it->second.gpuLines.clear();
                 it->second.gpuPolys.clear();
