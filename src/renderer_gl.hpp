@@ -50,7 +50,7 @@ public:
                         std::vector<TextVertex>& outVerts) const;
 
     // GL frame helpers
-    void beginFrame(const AABB& view, float clearR, float clearG, float clearB);
+    void beginFrame(const AABB& view, float clearR, float clearG, float clearB, float clearA);
     void endFrame();
 
     // Uploads

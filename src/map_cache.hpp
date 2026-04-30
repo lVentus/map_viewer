@@ -13,11 +13,12 @@
 #include <string>
 
 #include "app.hpp"
+#include "color_config.hpp"
 #include "renderer_gl.hpp"
 
 class MapCache {
 public:
-    MapCache() = default;
+    explicit MapCache(const ColorConfig& colors) : colors_(colors) {}
     ~MapCache() = default;
 
     // Cache lifecycle
@@ -112,7 +113,7 @@ private:
         std::vector<TextLabelCPU> texts;
         bool empty = true;
     };
-    static bool parseTileBlob_(const std::vector<uint8_t>& blob, PendingTileCPU& out);
+    bool parseTileBlob_(const std::vector<uint8_t>& blob, PendingTileCPU& out);
 
     // ---- per-tile GPU ----
     void destroyTileGpu_(RendererGL& r, Tile& t);
@@ -168,4 +169,6 @@ private:
 
     bool anyTextLoaded_ = false;
     bool anyPolyLoaded_ = false;
+
+    const ColorConfig& colors_;
 };

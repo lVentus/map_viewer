@@ -4,6 +4,13 @@
 
 `sudo apt update && sudo apt install -y build-essential cmake ninja-build pkg-config libglfw3-dev libgl1-mesa-dev libx11-dev libxrandr-dev libxi-dev libxinerama-dev libxcursor-dev xorg-dev mesa-common-dev`
 
+## Controls
+
+- Mouse wheel: zoom around the cursor position.
+- Left mouse drag: pan.
+- Ctrl+Q: quit.
+
+
 ## Build
 
 From the repo root:
@@ -38,7 +45,11 @@ A `.gm` file is plain text and must be read in this exact order:
 5. `numPolygons` lines: Polygons (one polygon per line, variable length)
 6. `numTexts` lines: Text labels (one label per line, variable length)
 
----
+* Examples
+
+```bash
+data/sample_features.gm
+```
 
 ## Count lines (first 4 lines)
 
@@ -85,12 +96,12 @@ During cache build, `(u, v)` is resolved to a segment `(x0,y0)-(x1,y1)`. At runt
 ## Polygons (`numPolygons` lines)
 
 Each line (variable length):
-`POLY layer r g b a n x0 y0 ... x(n-1) y(n-1)`
+`POLY layer r g b a n p0 p1 ... p(n-1)`
 
 * `layer`: draw order key (int; the viewer draws polygons in ascending layer)
 * `r g b a`: color (float)
 * `n`: vertex count (`n >= 3`)
-* `(xk, yk)`: vertex coordinates (float)
+* `pk`: node index
 
 Polygons are triangulated at runtime (ear clipping). If triangulation fails, the polygon is skipped.
 
@@ -99,10 +110,35 @@ Polygons are triangulated at runtime (ear clipping). If triangulation fails, the
 ## Text (`numTexts` lines)
 
 Each line (variable length):
-`TEXT x y angle size r g b a <rest of line is text>`
+`TEXT p angle size r g b a <rest of line is text>`
 
-* `x, y`: label anchor position (float)
+* `p`: label anchor node index
 * `angle`: rotation angle (float; if `abs(angle) > 2π`, treat it as degrees and convert to radians. Otherwise, treat it as radians)
 * `size`: label height in world units (float)
 * `r g b a`: color (float)
 * `text`: the remainder of the line, including spaces
+
+## `color.conf`
+
+Colors are independent from the map data. RGBA values are floats in the range `[0, 1]`.
+
+```text
+background r g b a
+color index r g b a
+```
+
+The short form also works:
+
+```text
+index r g b a
+```
+
+Example:
+
+```text
+background 0.06 0.065 0.075 1.0
+color 1 0.88 0.88 0.88 1.0
+4 0.18 0.35 0.75 0.35
+```
+
+See `config/color.conf` and `data/sample_features.gm` for a complete sample with nodes, edges, polygons, and text.

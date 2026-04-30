@@ -54,3 +54,21 @@ else()
         target_link_libraries(map_viewer PRIVATE dl pthread X11)
     endif()
 endif()
+# ---- Runtime files ----
+foreach(runtime_dir data config resources)
+    if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${runtime_dir}")
+        add_custom_command(TARGET map_viewer POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+                    "${CMAKE_CURRENT_SOURCE_DIR}/${runtime_dir}"
+                    "$<TARGET_FILE_DIR:map_viewer>/${runtime_dir}"
+        )
+    endif()
+endforeach()
+
+if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/external/fonts")
+    add_custom_command(TARGET map_viewer POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+                "${CMAKE_CURRENT_SOURCE_DIR}/external/fonts"
+                "$<TARGET_FILE_DIR:map_viewer>/external/fonts"
+    )
+endif()

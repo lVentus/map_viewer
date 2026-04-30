@@ -195,8 +195,8 @@ bool RendererGL::initFont(const std::string& ttfPath) {
     return true;
 }
 
-void RendererGL::beginFrame(const AABB& view, float clearR, float clearG, float clearB) {
-    glClearColor(clearR, clearG, clearB, 1.0f);
+void RendererGL::beginFrame(const AABB& view, float clearR, float clearG, float clearB, float clearA) {
+    glClearColor(clearR, clearG, clearB, clearA);
     glClear(GL_COLOR_BUFFER_BIT);
 
     glUseProgram(colorProg_);

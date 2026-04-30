@@ -8,8 +8,10 @@
 #include <cstdlib>
 #include <cstring>
 #include <cmath>
+#include <filesystem>
 #include <fstream>
 #include <string>
+#include <system_error>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -60,7 +62,7 @@ struct Camera {
 // ---- cache params ----
 // Keep identical to the current behavior.
 static constexpr int kTileSize = 65535;
-static constexpr int kCacheVersion = 1;
+static constexpr int kCacheVersion = 2;
 
 struct TileKey { int tx = 0; int ty = 0; };
 
@@ -116,6 +118,7 @@ struct TextLabelCPU {
     Vec2 pos;
     float angle = 0.0f;
     float size = 400.0f;
+    int colorIndex = 0;
     float color[4] = {1, 1, 1, 1};
     std::string text;
 };
@@ -130,6 +133,7 @@ struct PolyMeshCPU {
     std::vector<Vec2> verts;
     std::vector<uint32_t> idx; // triangles
     std::array<float, 4> color{1, 1, 1, 1};
+    int colorIndex = 0;
     int layer = 0;
     AABB bb{};
 };
@@ -193,9 +197,9 @@ inline std::string getCacheRoot() {
 }
 
 inline bool ensureDir(const std::string& dir) {
-    // Keep current behavior (mkdir -p via system).
-    std::string cmd = "mkdir -p \"" + dir + "\"";
-    return std::system(cmd.c_str()) == 0;
+    std::error_code ec;
+    std::filesystem::create_directories(dir, ec);
+    return !ec;
 }
 
 // ---- triangulation (ear clipping) ----

@@ -409,17 +409,27 @@ bool MapCache::buildCache_(const std::string& gmPath, CacheInfo& out) {
         }
 
         int layer = 0;
-        float r = 0, g = 0, b = 0, a = 0;
+        int colorIndex = 0;
         uint32_t n = 0;
-        ss >> layer >> r >> g >> b >> a >> n;
+        if (!(ss >> layer >> colorIndex >> n)) {
+            std::cerr << "WARNING: invalid polygon " << i << ", skipped.\n";
+            continue;
+        }
 
         std::vector<Vec2> verts;
         verts.reserve(n);
 
         AABB bb{+1e30f, +1e30f, -1e30f, -1e30f};
+        bool validPoly = true;
         for (uint32_t k = 0; k < n; ++k) {
-            float x = 0, y = 0;
-            ss >> x >> y;
+            uint32_t nodeId = 0;
+            if (!(ss >> nodeId) || nodeId >= numNodes) {
+                validPoly = false;
+                break;
+            }
+
+            const float x = nodesXY[nodeId * 2 + 0];
+            const float y = nodesXY[nodeId * 2 + 1];
             verts.push_back(v2(x, y));
             bb.minx = std::min(bb.minx, x);
             bb.maxx = std::max(bb.maxx, x);
@@ -427,7 +437,12 @@ bool MapCache::buildCache_(const std::string& gmPath, CacheInfo& out) {
             bb.maxy = std::max(bb.maxy, y);
         }
 
-        const uint32_t payloadSz = (uint32_t)(sizeof(int32_t) + sizeof(float) * 4 + sizeof(uint32_t) + sizeof(float) * 2 * n);
+        if (!validPoly || verts.size() < 3) {
+            std::cerr << "WARNING: invalid polygon " << i << ", skipped.\n";
+            continue;
+        }
+
+        const uint32_t payloadSz = (uint32_t)(sizeof(int32_t) * 2 + sizeof(uint32_t) + sizeof(float) * 2 * n);
         std::vector<uint8_t> payload(payloadSz);
         uint8_t* p = payload.data();
 
@@ -437,8 +452,9 @@ bool MapCache::buildCache_(const std::string& gmPath, CacheInfo& out) {
         };
 
         const int32_t layer32 = (int32_t)layer;
+        const int32_t color32 = (int32_t)colorIndex;
         wr(&layer32, sizeof(layer32));
-        wr(&r, sizeof(float)); wr(&g, sizeof(float)); wr(&b, sizeof(float)); wr(&a, sizeof(float));
+        wr(&color32, sizeof(color32));
         wr(&n, sizeof(uint32_t));
         for (uint32_t k = 0; k < n; ++k) {
             wr(&verts[k].x, sizeof(float));
@@ -469,16 +485,27 @@ bool MapCache::buildCache_(const std::string& gmPath, CacheInfo& out) {
             return false;
         }
 
-        float x = 0, y = 0, angle = 0, size = 0;
-        float r = 1, g = 1, b = 1, a = 1;
-        ss >> x >> y >> angle >> size >> r >> g >> b >> a;
+        uint32_t anchor = 0;
+        float angle = 0, size = 0;
+        int colorIndex = 0;
+        if (!(ss >> anchor >> angle >> size >> colorIndex)) {
+            std::cerr << "WARNING: invalid text " << i << ", skipped.\n";
+            continue;
+        }
+        if (anchor >= numNodes) {
+            std::cerr << "WARNING: invalid text anchor " << i << ", skipped.\n";
+            continue;
+        }
+
+        float x = nodesXY[anchor * 2 + 0];
+        float y = nodesXY[anchor * 2 + 1];
 
         std::string rest;
         std::getline(ss, rest);
         if (!rest.empty() && rest[0] == ' ') rest.erase(rest.begin());
 
         const uint32_t len = (uint32_t)rest.size();
-        const uint32_t payloadSz = (uint32_t)(sizeof(float) * 4 + sizeof(float) * 4 + sizeof(uint32_t) + len);
+        const uint32_t payloadSz = (uint32_t)(sizeof(float) * 4 + sizeof(int32_t) + sizeof(uint32_t) + len);
         std::vector<uint8_t> payload(payloadSz);
         uint8_t* p = payload.data();
 
@@ -487,8 +514,9 @@ bool MapCache::buildCache_(const std::string& gmPath, CacheInfo& out) {
             p += sz;
         };
 
+        const int32_t color32 = (int32_t)colorIndex;
         wr(&x, sizeof(float)); wr(&y, sizeof(float)); wr(&angle, sizeof(float)); wr(&size, sizeof(float));
-        wr(&r, sizeof(float)); wr(&g, sizeof(float)); wr(&b, sizeof(float)); wr(&a, sizeof(float));
+        wr(&color32, sizeof(color32));
         wr(&len, sizeof(uint32_t));
         if (len) wr(rest.data(), len);
 
@@ -653,15 +681,12 @@ bool MapCache::parseTileBlob_(const std::vector<uint8_t>& blob, PendingTileCPU& 
         else if (type == REC_POLY) {
             const uint8_t* q = p;
             int32_t layer = 0;
-            float r = 0, g = 0, b = 0, a = 0;
+            int32_t colorIndex = 0;
             uint32_t n = 0;
 
-            if (sz < 4 + 4 * 4 + 4) continue;
+            if (sz < 4 + 4 + 4) continue;
             std::memcpy(&layer, q, 4); q += 4;
-            std::memcpy(&r, q, 4); q += 4;
-            std::memcpy(&g, q, 4); q += 4;
-            std::memcpy(&b, q, 4); q += 4;
-            std::memcpy(&a, q, 4); q += 4;
+            std::memcpy(&colorIndex, q, 4); q += 4;
             std::memcpy(&n, q, 4); q += 4;
 
             if (n < 3) continue;
@@ -669,7 +694,8 @@ bool MapCache::parseTileBlob_(const std::vector<uint8_t>& blob, PendingTileCPU& 
 
             PolyMeshCPU pm{};
             pm.layer = (int)layer;
-            pm.color = {r, g, b, a};
+            pm.colorIndex = (int)colorIndex;
+            pm.color = colors_.get(pm.colorIndex);
             pm.verts.resize(n);
 
             AABB bb{+1e30f, +1e30f, -1e30f, -1e30f};
@@ -693,18 +719,15 @@ bool MapCache::parseTileBlob_(const std::vector<uint8_t>& blob, PendingTileCPU& 
         else if (type == REC_TEXT) {
             const uint8_t* q = p;
             float x = 0, y = 0, angle = 0, sizePt = 0;
-            float r = 1, g = 1, b = 1, a = 1;
+            int32_t colorIndex = 0;
             uint32_t len = 0;
 
-            if (sz < 4 * 10 + 4) continue;
+            if (sz < 4 * 4 + 4 + 4) continue;
             std::memcpy(&x, q, 4); q += 4;
             std::memcpy(&y, q, 4); q += 4;
             std::memcpy(&angle, q, 4); q += 4;
             std::memcpy(&sizePt, q, 4); q += 4;
-            std::memcpy(&r, q, 4); q += 4;
-            std::memcpy(&g, q, 4); q += 4;
-            std::memcpy(&b, q, 4); q += 4;
-            std::memcpy(&a, q, 4); q += 4;
+            std::memcpy(&colorIndex, q, 4); q += 4;
             std::memcpy(&len, q, 4); q += 4;
 
             if ((size_t)(q - p) + (size_t)len > (size_t)sz) continue;
@@ -713,7 +736,9 @@ bool MapCache::parseTileBlob_(const std::vector<uint8_t>& blob, PendingTileCPU& 
             t.pos = v2(x, y);
             t.angle = angle;
             t.size = sizePt;
-            t.color[0] = r; t.color[1] = g; t.color[2] = b; t.color[3] = a;
+            t.colorIndex = (int)colorIndex;
+            const auto rgba = colors_.get(t.colorIndex);
+            t.color[0] = rgba[0]; t.color[1] = rgba[1]; t.color[2] = rgba[2]; t.color[3] = rgba[3];
             t.text.assign((const char*)q, (size_t)len);
 
             out.texts.push_back(std::move(t));
@@ -734,20 +759,8 @@ bool MapCache::parseTileBlob_(const std::vector<uint8_t>& blob, PendingTileCPU& 
 
 // ---- road style ----
 
-static std::array<float, 4> roadColor(int /*w*/, int c) {
-    float r = 1.0f, g = 1.0f, b = 1.0f;
-    switch (c) {
-        case 0: r = 1.0f; g = 1.0f; b = 1.0f; break;
-        case 1: r = 0.4f; g = 0.8f; b = 1.0f; break;
-        case 2: r = 1.0f; g = 0.4f; b = 0.4f; break;
-        case 3: r = 1.0f; g = 0.8f; b = 0.2f; break;
-        case 4: r = 0.4f; g = 1.0f; b = 0.4f; break;
-        case 5: r = 1.0f; g = 0.4f; b = 1.0f; break;
-        case 6: r = 0.8f; g = 0.8f; b = 0.8f; break;
-        case 7: r = 0.6f; g = 0.6f; b = 0.6f; break;
-        default: break;
-    }
-    return {r, g, b, 1.0f};
+static std::array<float, 4> roadColor(const ColorConfig& colors, int /*w*/, int c) {
+    return colors.get(c);
 }
 
 static float roadWidthPx(int w) {
@@ -1114,7 +1127,7 @@ void MapCache::uploadTile_(RendererGL& r, PendingTileCPU&& cpu, double viewArea)
         g.c = b.c;
         g.width = roadWidthPx(b.w);
 
-        auto col = roadColor(b.w, b.c);
+        auto col = roadColor(colors_, b.w, b.c);
         g.color[0] = col[0]; g.color[1] = col[1]; g.color[2] = col[2]; g.color[3] = col[3];
 
         r.uploadLines(b, g);

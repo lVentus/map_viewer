@@ -12,6 +12,7 @@
 #include "app.hpp"
 #include "map_cache.hpp"
 #include "renderer_gl.hpp"
+#include "color_config.hpp"
 
 // ---- camera state ----
 
@@ -20,6 +21,7 @@ static bool gMouseLeft = false;
 static double gLastX = 0.0;
 static double gLastY = 0.0;
 static bool gDirty = true;
+static ColorConfig gColors;
 
 static void getViewRect(double& left, double& right, double& bottom, double& top) {
     const double vw = gCam.baseViewWidth / gCam.zoom;
@@ -69,9 +71,17 @@ static std::string findDefaultFontPath() {
 
 static void framebufferSizeCallback(GLFWwindow* window, int w, int h) {
     (void)window;
+    if (w <= 0 || h <= 0) return;
+
     gCam.fbW = w;
     gCam.fbH = h;
     glViewport(0, 0, w, h);
+
+    if (gCam.baseViewHeight > 0.0) {
+        const double aspect = (double)w / (double)h;
+        gCam.baseViewWidth = gCam.baseViewHeight * aspect;
+    }
+
     gDirty = true;
 }
 
@@ -149,19 +159,35 @@ static void scrollCallback(GLFWwindow* window, double xoff, double yoff) {
     gDirty = true;
 }
 
+static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+    (void)scancode;
+    if (action != GLFW_PRESS) return;
+
+    if (key == GLFW_KEY_Q && (mods & GLFW_MOD_CONTROL)) {
+        glfwSetWindowShouldClose(window, GLFW_TRUE);
+    }
+}
+
 // ---- main ----
 
 int main(int argc, char** argv) {
     std::string gmPath;
     if (argc >= 2) gmPath = argv[1];
     else {
-        std::cerr << "Usage: " << argv[0] << " <map.gm> [font.ttf]\n";
+        std::cerr << "Usage: " << argv[0] << " <map.gm> [font.ttf] [color.conf]\n";
         return 1;
     }
 
     std::string fontPath;
     if (argc >= 3) fontPath = argv[2];
     else fontPath = findDefaultFontPath();
+
+    const std::string colorPath = (argc >= 4) ? argv[3] : std::string("config/color.conf");
+    if (loadColorConfig(colorPath, gColors)) {
+        std::cout << "Loaded colors: " << colorPath << "\n";
+    } else {
+        std::cout << "No color config found at " << colorPath << "; using built-in defaults.\n";
+    }
 
     if (!glfwInit()) {
         std::cerr << "Failed to init GLFW\n";
@@ -192,6 +218,7 @@ int main(int argc, char** argv) {
     glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
     glfwSetMouseButtonCallback(window, mouseButtonCallback);
     glfwSetCursorPosCallback(window, cursorPosCallback);
+    glfwSetKeyCallback(window, keyCallback);
     glfwSetScrollCallback(window, scrollCallback);
 
     int fbW = 0, fbH = 0;
@@ -214,7 +241,7 @@ int main(int argc, char** argv) {
         std::cerr << "No font found. Put a TTF at data/DejaVuSans.ttf (or pass argv[2]). Text disabled.\n";
     }
 
-    MapCache cache;
+    MapCache cache(gColors);
     CacheInfo ci{};
     if (!cache.openOrBuild(gmPath, ci)) {
         std::cerr << "ERROR: cache open/build failed\n";
@@ -225,6 +252,7 @@ int main(int argc, char** argv) {
     }
 
     initCameraFromBounds(ci.bounds, fbW, fbH);
+    framebufferSizeCallback(window, fbW, fbH);
 
     cache.start();
 
@@ -267,7 +295,7 @@ int main(int argc, char** argv) {
         cache.uploadReady(renderer, viewArea);
         cache.evict();
 
-        renderer.beginFrame(viewBB, 0.08f, 0.09f, 0.10f);
+        renderer.beginFrame(viewBB, gColors.background[0], gColors.background[1], gColors.background[2], gColors.background[3]);
 
         // Polys: collect & layer-sort (same behavior)
         if (cache.anyPolyLoaded()) {
